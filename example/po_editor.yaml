@@ -1,0 +1,24 @@
+# Configuration file for po_editor_updater synchronization package.
+# Sync translations with: flutter pub run po_editor_updater:sync
+
+# PO Editor Project ID
+# In order to avoid wrong type conversion use quotes for numeric ID.
+po_editor_project_id: "00000"
+
+# PO Editor API key
+po_editor_api_key: 34f...98f
+
+# List of supported languages.
+languages:
+  - en
+  - ru
+
+# The language that used to generate keys.
+fallback: en
+
+# Directory where translations need to be stored.
+# Keep trailing slash.
+translations_dir: assets/translations/
+
+# The name of files for generated keys.
+output: locale_keys.g.dart
