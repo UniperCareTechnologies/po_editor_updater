@@ -6,6 +6,11 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:yaml/yaml.dart';
 
+class OutputFormat {
+  static const keyValueJson = 'key_value_json';
+  static const androidStrings = 'android_strings';
+}
+
 List<String> supportedLocales = [];
 late String fallbackLanguage;
 late String translationsDir;
@@ -15,6 +20,8 @@ const poEditorExportEndpoint = 'https://api.poeditor.com/v2/projects/export';
 late String poEditorApiKey;
 late String poEditorApiProjectId;
 
+const androidTransRoot = 'android/app/src/main/res';
+
 void main(List<String> args) async {
   print('Export translations from PO Editor is started');
 
@@ -22,14 +29,38 @@ void main(List<String> args) async {
     await readConfig();
 
     for (final language in supportedLocales) {
-      final url = await getLocaleFileUrl(language);
+      print('Export translations for language: $language');
+
+      // Download the language and update Flutter translations.
+      String? url = await getLocaleFileUrl(language, OutputFormat.keyValueJson);
       if (url?.isNotEmpty == true) {
-        print('Prepare to export $language from $url');
+        print('Prepare to export Flutter translations from $url');
         String name = '$language.json';
         String translation = await getLocalizationTranslation(url!);
         if (translation.isNotEmpty) {
-          saveTranslationFile(name, translation);
-          print('Translation for $language has been updated.');
+          saveTranslationFile('$translationsDir$name', translation);
+          print('Translations in $translationsDir$name have been updated.');
+        } else {
+          print('Got empty translations for $language, skipped.');
+          continue;
+        }
+      }
+
+      // Download the language and update Android translations.
+      url = await getLocaleFileUrl(language, OutputFormat.androidStrings);
+      if (url?.isNotEmpty == true) {
+        print('Prepare to export Android translations from $url');
+        String translation = await getLocalizationTranslation(url!);
+        if (translation.isNotEmpty) {
+          Directory languageValues;
+          if (language != 'en') {
+            languageValues = Directory('$androidTransRoot/values-$language');
+            if (!(await languageValues.exists())) await languageValues.create();
+          } else {
+            languageValues = Directory('$androidTransRoot/values');
+          }
+          saveTranslationFile('${languageValues.path}/strings.xml', translation);
+          print('Translations in ${languageValues.path}/strings.xml have been updated.');
         }
       }
     }
@@ -73,7 +104,7 @@ Future<void> readConfig() async {
   output = yaml['output'];
 }
 
-Future<String?> getLocaleFileUrl(String languageCode) async {
+Future<String?> getLocaleFileUrl(String languageCode, String type) async {
   http.Response response = await http.post(Uri.parse(poEditorExportEndpoint),
     headers: <String, String>{
       'Content-Type' : 'application/x-www-form-urlencoded'
@@ -82,8 +113,8 @@ Future<String?> getLocaleFileUrl(String languageCode) async {
       'api_token' : poEditorApiKey,
       'id' : poEditorApiProjectId,
       'language' : languageCode,
-      'type' : 'key_value_json',
-      'filters' : 'translated',
+      'type' : type,
+      'filters' : 'translated'
     },
     encoding: Encoding.getByName("utf-8")
   );
@@ -110,8 +141,8 @@ Future<String> getLocalizationTranslation(String url) async {
   }
 }
 
-saveTranslationFile(String fileName, String content) async {
-  var file = File('$translationsDir$fileName');
+saveTranslationFile(String absoluteFileName, String content) async {
+  var file = File(absoluteFileName);
   if (!await file.exists()) {
     await file.create();
   }
