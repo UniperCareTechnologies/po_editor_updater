@@ -20,7 +20,8 @@ const poEditorExportEndpoint = 'https://api.poeditor.com/v2/projects/export';
 late String poEditorApiKey;
 late String poEditorApiProjectId;
 
-const androidTransRoot = 'android/app/src/main/res';
+bool nativeAndroidEnabled = false;
+const nativeAndroidTransRoot = 'android/app/src/main/res';
 
 void main(List<String> args) async {
   print('Export translations from PO Editor is started');
@@ -31,7 +32,7 @@ void main(List<String> args) async {
     for (final language in supportedLocales) {
       print('Export translations for language: $language');
 
-      // Download the language and update Flutter translations.
+      // Download the language in json format and update Flutter translations.
       String? url = await getLocaleFileUrl(language, OutputFormat.keyValueJson);
       if (url?.isNotEmpty == true) {
         print('Prepare to export Flutter translations from $url');
@@ -46,21 +47,23 @@ void main(List<String> args) async {
         }
       }
 
-      // Download the language and update Android translations.
-      url = await getLocaleFileUrl(language, OutputFormat.androidStrings);
-      if (url?.isNotEmpty == true) {
-        print('Prepare to export Android translations from $url');
-        String translation = await getLocalizationTranslation(url!);
-        if (translation.isNotEmpty) {
-          Directory languageValues;
-          if (language != 'en') {
-            languageValues = Directory('$androidTransRoot/values-$language');
-            if (!(await languageValues.exists())) await languageValues.create();
-          } else {
-            languageValues = Directory('$androidTransRoot/values');
+      // Download the language in xml format and update Android translations.
+      if (nativeAndroidEnabled) {
+        url = await getLocaleFileUrl(language, OutputFormat.androidStrings);
+        if (url?.isNotEmpty == true) {
+          print('Prepare to export Android translations from $url');
+          String translation = await getLocalizationTranslation(url!);
+          if (translation.isNotEmpty) {
+            Directory languageValues;
+            if (language != 'en') {
+              languageValues = Directory('$nativeAndroidTransRoot/values-$language');
+              if (!(await languageValues.exists())) await languageValues.create();
+            } else {
+              languageValues = Directory('$nativeAndroidTransRoot/values');
+            }
+            saveTranslationFile('${languageValues.path}/strings.xml', translation);
+            print('Translations in ${languageValues.path}/strings.xml have been updated.');
           }
-          saveTranslationFile('${languageValues.path}/strings.xml', translation);
-          print('Translations in ${languageValues.path}/strings.xml have been updated.');
         }
       }
     }
@@ -102,6 +105,9 @@ Future<void> readConfig() async {
   fallbackLanguage = yaml['fallback'] ?? 'en';
   translationsDir = yaml['translations_dir'];
   output = yaml['output'];
+
+  final platform = yaml['platform'];
+  nativeAndroidEnabled = platform['android'] == 'copy';
 }
 
 Future<String?> getLocaleFileUrl(String languageCode, String type) async {

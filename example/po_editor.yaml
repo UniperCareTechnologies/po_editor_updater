@@ -22,3 +22,11 @@ translations_dir: assets/translations/
 
 # The name of files for generated keys.
 output: locale_keys.g.dart
+
+# If translations need to be updates in native platform files then
+# we need to specify the action. For now only "copy" os supported and these mean
+# all translations are copied to the platform dependent place. Use "none" to
+# disable updating platform files.
+platform:
+  android: copy
+  ios: none
