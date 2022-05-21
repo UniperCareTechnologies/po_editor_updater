@@ -28,5 +28,6 @@ output: locale_keys.g.dart
 # all translations are copied to the platform dependent place. Use "none" to
 # disable updating platform files.
 platform:
+  flutter: copy
   android: copy
   ios: none

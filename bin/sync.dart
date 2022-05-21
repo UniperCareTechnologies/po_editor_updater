@@ -21,6 +21,8 @@ const poEditorExportEndpoint = 'https://api.poeditor.com/v2/projects/export';
 late String poEditorApiKey;
 late String poEditorApiProjectId;
 
+bool flutterEnabled = true;
+
 bool nativeAndroidEnabled = false;
 const nativeAndroidTransRoot = 'android/app/src/main/res/raw/';
 
@@ -44,11 +46,13 @@ void main(List<String> args) async {
         String translation = await getLocalizationTranslation(url!);
         if (translation.isNotEmpty) {
 
-          saveTranslationFile('$translationsDir$name', translation);
-          print('Translations in $translationsDir$name have been updated.');
+          if (flutterEnabled) {
+            saveTranslationFile('$translationsDir$name', translation);
+            print('Translations in $translationsDir$name have been updated.');
+          }
 
-          print('Copy Flutter translations to Android project');
           if (nativeAndroidEnabled) {
+            print('Copy Flutter translations to Android project');
             saveTranslationFile('$nativeAndroidTransRoot$name', translation);
             print('Translations in $nativeAndroidTransRoot$name have been updated.');
           }
@@ -77,21 +81,23 @@ void main(List<String> args) async {
       }
     }
 
-    print('Building keys...');
-    final result = await Process.run('flutter', [
-      'pub',
-      'run',
-      'easy_localization:generate',
-      '--source-dir', translationsDir,
-      '--source-file', '$fallbackLanguage.json',
-      '-f', 'keys',
-      '-o', output
-    ], runInShell: true);
+    if (flutterEnabled) {
+      print('Building keys...');
+      final result = await Process.run('flutter', [
+        'pub',
+        'run',
+        'easy_localization:generate',
+        '--source-dir', translationsDir,
+        '--source-file', '$fallbackLanguage.json',
+        '-f', 'keys',
+        '-o', output
+      ], runInShell: true);
 
-    if (result.exitCode == 0) {
-      print(result.stdout);
-    } else {
-      print(result.stderr);
+      if (result.exitCode == 0) {
+        print(result.stdout);
+      } else {
+        print(result.stderr);
+      }
     }
 
   } on Exception catch(e) {
@@ -116,6 +122,7 @@ Future<void> readConfig() async {
   output = yaml['output'];
 
   final platform = yaml['platform'];
+  flutterEnabled = platform['flutter']?.toLowerCase() == 'copy';
   nativeAndroidEnabled = platform['android']?.toLowerCase() == 'copy';
   nativeIosEnabled = platform['ios']?.toLowerCase() == 'copy';
 }
