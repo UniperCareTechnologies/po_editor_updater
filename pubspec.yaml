@@ -1,6 +1,6 @@
 name: po_editor_updater
 description: PO Editor export and synchronization utility.
-version: 0.2.0
+version: 0.2.1
 
 environment:
   sdk: ">=2.16.2 <3.0.0"
