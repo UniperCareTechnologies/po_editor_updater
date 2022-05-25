@@ -70,7 +70,8 @@ void main(List<String> args) async {
           print('Prepare to export iOS translations from $url');
           String translation = await getLocalizationTranslation(url!);
           if (translation.isNotEmpty) {
-            final languageDirPath = '$nativeIosTransRoot$language.lproj';
+            final langSuffix = language == 'pt' ? 'pt-PT' : language;
+            final languageDirPath = '$nativeIosTransRoot$langSuffix.lproj';
             final languageDir = Directory(languageDirPath);
             if (!(await languageDir.exists())) await languageDir.create();
             final languageFile = '$languageDirPath/Localizable.strings';
